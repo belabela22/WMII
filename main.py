@@ -73,7 +73,7 @@ class RoleButton(discord.ui.Button):
                 title="✅ Role Selected!",
                 description=(
                     f"You’ve selected **MS1 Year 1 Student**!\n\n"
-                    f"🌐 Click here to join the private MS1 community:\n{INVITE_LINK}"
+                    f"🌐 Click here to join the Wisteria medical institute community:\n{INVITE_LINK}"
                 ),
                 color=discord.Color.from_str("#C9A0DC")
             )
