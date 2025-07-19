@@ -6,12 +6,15 @@ from datetime import datetime
 from dotenv import load_dotenv
 from aiohttp import web
 import asyncio
-import aiohttp
+import aiohttp  # for sending webhook
 
 # Load environment variables from .env file
 load_dotenv()
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 PORT = int(os.getenv('PORT', 8080))
+
+# Your Google Sheets webhook URL here
+WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxWh0xGl4sQ6WRzxedsaYJqUUJpfqw7JUqWtbvTEHZlwfSYq4sYpJhadsdk3h9K-ynJ/exec"
 
 # Discord bot setup
 intents = discord.Intents.default()
@@ -30,6 +33,18 @@ WELCOME_GIF_URL = "https://www.dropbox.com/scl/fi/yxya94d102ltsrz64qv9k/Photo-Ju
 
 user_role_choices = {}
 
+# Function to send webhook log
+async def send_webhook_log(name, email, discord_user, discord_id, role):
+    async with aiohttp.ClientSession() as session:
+        await session.post(WEBHOOK_URL, json={
+            "name": name,
+            "email": email,
+            "discord_user": discord_user,
+            "discord_id": discord_id,
+            "role": role,
+            "timestamp": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        })
+
 # Modal for registration
 class RegistrationModal(discord.ui.Modal, title="WMI Registration"):
     name = discord.ui.TextInput(label="Full Name", placeholder="Enter your full name", required=True)
@@ -39,15 +54,8 @@ class RegistrationModal(discord.ui.Modal, title="WMI Registration"):
         name = self.name.value
         email = self.email.value or "Not provided"
 
-        # <-- THIS IS THE ONLY ADDED PART: send data to your Google Sheets webhook -->
-        async with aiohttp.ClientSession() as session:
-            await session.post("https://script.google.com/macros/s/YOUR_WEBHOOK_ID/exec", json={
-                "name": name,
-                "email": email,
-                "discord_user": str(interaction.user),
-                "discord_id": interaction.user.id,
-                "timestamp": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-            })
+        # Send data to Google Sheets webhook
+        await send_webhook_log(name, email, str(interaction.user), interaction.user.id, "MS1 Year 1 Student")
 
         view = RoleView(interaction.user.id)
         role_embed = discord.Embed(
@@ -57,7 +65,7 @@ class RegistrationModal(discord.ui.Modal, title="WMI Registration"):
         )
         await interaction.response.send_message(embed=role_embed, view=view, ephemeral=True)
 
-        # Send log message
+        # Send log message in Discord channel
         log_channel = bot.get_channel(LOG_CHANNEL_ID)
         if log_channel:
             log_embed = discord.Embed(
