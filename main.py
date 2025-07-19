@@ -1,3 +1,4 @@
+import discord
 from discord.ext import commands
 from discord import app_commands
 import os
@@ -5,7 +6,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from aiohttp import web
 import asyncio
-import aiohttp  # <-- added import for sending webhook
+import aiohttp
 
 # Load environment variables from .env file
 load_dotenv()
