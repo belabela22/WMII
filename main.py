@@ -13,7 +13,7 @@ load_dotenv()
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 PORT = int(os.getenv('PORT', 8080))
 
-# Updated Google Sheets webhook URL
+# Google Sheets webhook URL
 WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbw--o753G2aCXCpibr4PH5F1hk4419SB5VGxt8ffTk4LSTnV7RAfWNStTm0r2BCoPqL/exec"
 
 # Discord bot setup
@@ -141,18 +141,19 @@ async def on_member_join(member: discord.Member):
     if channel:
         embed = discord.Embed(
             title="🌸 Welcome to Wisteria Medical Institute!",
-            description=(
-                f"Greetings, <@{member.id}>!\n\n"
-                "On behalf of our Leadership Council, we are absolute
-ly **thrilled** to have you join our community!\n\n"
-                "At **Wisteria Medical Institute**, we're dedicated to providing realistic medical education courses "
-                "and lessons while fostering an inclusive environment for all students and staff. Whether you're here "
-                "to **learn**, **teach**, or **make friends**, we're excited to have you with us. 💜\n\n"
-                "We can't wait to see all that you'll accomplish!\n\n"
-                "To gain full access to our community channels, please make sure to verify in <#1390781451812999349>.\n\n"
-                "Need assistance? Open a ModMail ticket. More information can be found in <#1390777039736537169>.\n\n"
-                "<:WMILogo:1393624412036534423>  **Wisteria Medical Institute** — All Rights Reserved."
-            ),
+            description="""Greetings, <@{}>!
+
+On behalf of our Leadership Council, we are absolutely **thrilled** to have you join our community!
+
+At **Wisteria Medical Institute**, we're dedicated to providing realistic medical education courses and lessons while fostering an inclusive environment for all students and staff. Whether you're here to **learn**, **teach**, or **make friends**, we're excited to have you with us. 💜
+
+We can't wait to see all that you'll accomplish!
+
+To gain full access to our community channels, please make sure to verify in <#1390781451812999349>.
+
+Need assistance? Open a ModMail ticket. More information can be found in <#1390777039736537169>.
+
+<:WMILogo:1393624412036534423>  **Wisteria Medical Institute** — All Rights Reserved.""".format(member.id),
             color=discord.Color.from_str("#B19CD9")
         )
         embed.set_image(url=WELCOME_GIF_URL)
