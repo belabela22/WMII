@@ -1,34 +1,35 @@
-import discord
 from discord.ext import commands
 from discord import app_commands
 import os
-import asyncio
-import aiohttp  # async HTTP client for POST requests
 from datetime import datetime
 from dotenv import load_dotenv
 from aiohttp import web
+import asyncio
+import aiohttp  # <-- added import for sending webhook
 
-# Load environment variables
+# Load environment variables from .env file
 load_dotenv()
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 PORT = int(os.getenv('PORT', 8080))
 
-# Your Google Apps Script webhook URL here (from deploying the Apps Script web app)
-WEBHOOK_URL = os.getenv('WEBHOOK_URL')  # put your webhook URL in .env or replace here directly
+# Discord bot setup
+intents = discord.Intents.default()
+intents.members = True
+intents.message_content = True
 
-# Discord IDs
+bot = commands.Bot(command_prefix='/', intents=intents)
+
+# IDs and links
+SERVER_ID = 1286494224677736468
+ROLE_ID = 1386056949602455683
 LOG_CHANNEL_ID = 1395509672852852836
 WELCOME_CHANNEL_ID = 1286494224677736471
 INVITE_LINK = "https://discord.gg/dm8yXHD4"
 WELCOME_GIF_URL = "https://www.dropbox.com/scl/fi/yxya94d102ltsrz64qv9k/Photo-Jul-16-2025-22-48-40.gif?rlkey=1bs2wfc8ae0tuax8deyo6crwy&st=lqux5oe7&raw=1"
 
-intents = discord.Intents.default()
-intents.members = True
-intents.message_content = True
-bot = commands.Bot(command_prefix='/', intents=intents)
-
 user_role_choices = {}
 
+# Modal for registration
 class RegistrationModal(discord.ui.Modal, title="WMI Registration"):
     name = discord.ui.TextInput(label="Full Name", placeholder="Enter your full name", required=True)
     email = discord.ui.TextInput(label="Email", placeholder="Enter your email (optional)", required=False)
@@ -37,27 +38,16 @@ class RegistrationModal(discord.ui.Modal, title="WMI Registration"):
         name = self.name.value
         email = self.email.value or "Not provided"
 
-        # Send data to Google Apps Script webhook
-        data = {
-            "name": name,
-            "email": email,
-            "role": "MS1 Year 1 Student",
-            "discord_user": str(interaction.user),
-            "discord_id": str(interaction.user.id),
-            "timestamp": datetime.utcnow().isoformat()
-        }
-
+        # <-- THIS IS THE ONLY ADDED PART: send data to your Google Sheets webhook -->
         async with aiohttp.ClientSession() as session:
-            try:
-                async with session.post(WEBHOOK_URL, json=data) as resp:
-                    if resp.status == 200:
-                        print("✅ Data sent to Google Sheets via webhook")
-                    else:
-                        print(f"⚠️ Failed to send data: {resp.status}")
-            except Exception as e:
-                print(f"Exception sending webhook: {e}")
+            await session.post("https://script.google.com/macros/s/YOUR_WEBHOOK_ID/exec", json={
+                "name": name,
+                "email": email,
+                "discord_user": str(interaction.user),
+                "discord_id": interaction.user.id,
+                "timestamp": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            })
 
-        # Show role selection button
         view = RoleView(interaction.user.id)
         role_embed = discord.Embed(
             title="Choose Your Role",
@@ -66,7 +56,7 @@ class RegistrationModal(discord.ui.Modal, title="WMI Registration"):
         )
         await interaction.response.send_message(embed=role_embed, view=view, ephemeral=True)
 
-        # Log in Discord channel
+        # Send log message
         log_channel = bot.get_channel(LOG_CHANNEL_ID)
         if log_channel:
             log_embed = discord.Embed(
@@ -80,6 +70,7 @@ class RegistrationModal(discord.ui.Modal, title="WMI Registration"):
             log_embed.add_field(name="🕒 Date (UTC)", value=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), inline=True)
             await log_channel.send(embed=log_embed)
 
+# Role Button
 class RoleButton(discord.ui.Button):
     def __init__(self, user_id: int):
         super().__init__(label="MS1 Year 1 Student", style=discord.ButtonStyle.primary)
@@ -87,12 +78,12 @@ class RoleButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         if interaction.user.id == self.user_id:
-            user_role_choices[self.user_id] = 1386056949602455683  # Replace with your actual role ID
+            user_role_choices[self.user_id] = ROLE_ID
             embed = discord.Embed(
                 title="✅ Role Selected!",
                 description=(
                     f"You’ve selected **MS1 Year 1 Student**!\n\n"
-                    f"🌐 Click here to join the Wisteria medical institute community:\n{INVITE_LINK}"
+                    f"🌐 Click here to join the private Wisteria medical institute community:\n{INVITE_LINK}"
                 ),
                 color=discord.Color.from_str("#C9A0DC")
             )
@@ -100,6 +91,7 @@ class RoleButton(discord.ui.Button):
         else:
             await interaction.response.send_message("This button is not for you.", ephemeral=True)
 
+# View for Role Selection
 class RoleView(discord.ui.View):
     def __init__(self, user_id: int):
         super().__init__(timeout=None)
@@ -136,8 +128,8 @@ async def on_member_join(member: discord.Member):
                 "and lessons while fostering an inclusive environment for all students and staff. Whether you're here "
                 "to **learn**, **teach**, or **make friends**, we're excited to have you with us. 💜\n\n"
                 "We can't wait to see all that you'll accomplish!\n\n"
-                " To gain full access to our community channels, please make sure to verify in <#1390781451812999349>.\n\n"
-                " Need assistance? Open a ModMail ticket. More information can be found in <#1390777039736537169>.\n\n"
+                "To gain full access to our community channels, please make sure to verify in <#1390781451812999349>.\n\n"
+                "Need assistance? Open a ModMail ticket. More information can be found in <#1390777039736537169>.\n\n"
                 "<:WMILogo:1393624412036534423>  **Wisteria Medical Institute** — All Rights Reserved."
             ),
             color=discord.Color.from_str("#B19CD9")
@@ -152,7 +144,7 @@ async def wmi_register(interaction: discord.Interaction):
 
 bot.tree.add_command(wmi_register)
 
-# Simple web server to keep bot alive (optional)
+# Basic web server
 async def handle(request):
     return web.Response(text="Bot is running")
 
@@ -165,6 +157,7 @@ async def start_web_server():
     await site.start()
     print(f"Web server started on port {PORT}")
 
+# Run everything
 async def main():
     await asyncio.gather(
         bot.start(DISCORD_TOKEN),
