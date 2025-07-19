@@ -6,17 +6,25 @@ from datetime import datetime
 from dotenv import load_dotenv
 from aiohttp import web
 import asyncio
+import gspread
+from google.oauth2.service_account import Credentials
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 PORT = int(os.getenv('PORT', 8080))
+GOOGLE_SHEET_NAME = os.getenv('GOOGLE_SHEET_NAME')
+
+# Google Sheets setup
+SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
+creds = Credentials.from_service_account_file('service_account.json', scopes=SCOPES)
+gc = gspread.authorize(creds)
+sheet = gc.open(GOOGLE_SHEET_NAME).sheet1
 
 # Discord bot setup
 intents = discord.Intents.default()
 intents.members = True
 intents.message_content = True
-
 bot = commands.Bot(command_prefix='/', intents=intents)
 
 # IDs and links
@@ -46,7 +54,7 @@ class RegistrationModal(discord.ui.Modal, title="WMI Registration"):
         )
         await interaction.response.send_message(embed=role_embed, view=view, ephemeral=True)
 
-        # Send log message
+        # Log to Discord
         log_channel = bot.get_channel(LOG_CHANNEL_ID)
         if log_channel:
             log_embed = discord.Embed(
@@ -59,6 +67,19 @@ class RegistrationModal(discord.ui.Modal, title="WMI Registration"):
             log_embed.add_field(name="🎓 Role", value="MS1 Year 1 Student", inline=True)
             log_embed.add_field(name="🕒 Date (UTC)", value=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), inline=True)
             await log_channel.send(embed=log_embed)
+
+        # Log to Google Sheets
+        try:
+            sheet.append_row([
+                datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'),
+                name,
+                email,
+                str(interaction.user),
+                interaction.user.id,
+                "MS1 Year 1 Student"
+            ])
+        except Exception as e:
+            print(f"Error writing to Google Sheets: {e}")
 
 # Role Button
 class RoleButton(discord.ui.Button):
