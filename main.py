@@ -14,7 +14,7 @@ DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 PORT = int(os.getenv('PORT', 8080))
 
 # Google Sheets webhook URL (update with your deployed Google Apps Script web app URL)
-WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxWh0xGl4sQ6WRzxedsaYJqUUJpfqw7JUqWtbvTEHZlwfSYq4sYpJhadsdk3h9K-ynJ/exec"
+WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbw--o753G2aCXCpibr4PH5F1hk4419SB5VGxt8ffTk4LSTnV7RAfWNStTm0r2BCoPqL/exec"
 
 # Discord bot setup
 intents = discord.Intents.default()
