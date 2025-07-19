@@ -13,7 +13,7 @@ load_dotenv()
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 PORT = int(os.getenv('PORT', 8080))
 
-# Google Sheets webhook URL (update with your deployed Google Apps Script web app URL)
+# Updated Google Sheets webhook URL
 WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbw--o753G2aCXCpibr4PH5F1hk4419SB5VGxt8ffTk4LSTnV7RAfWNStTm0r2BCoPqL/exec"
 
 # Discord bot setup
@@ -143,7 +143,8 @@ async def on_member_join(member: discord.Member):
             title="🌸 Welcome to Wisteria Medical Institute!",
             description=(
                 f"Greetings, <@{member.id}>!\n\n"
-                "On behalf of our Leadership Council, we are absolutely **thrilled** to have you join our community!\n\n"
+                "On behalf of our Leadership Council, we are absolute
+ly **thrilled** to have you join our community!\n\n"
                 "At **Wisteria Medical Institute**, we're dedicated to providing realistic medical education courses "
                 "and lessons while fostering an inclusive environment for all students and staff. Whether you're here "
                 "to **learn**, **teach**, or **make friends**, we're excited to have you with us. 💜\n\n"
