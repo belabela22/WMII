@@ -13,7 +13,7 @@ load_dotenv()
 DISCORD_TOKEN = os.getenv('DISCORD_TOKEN')
 PORT = int(os.getenv('PORT', 8080))
 
-# Your Google Sheets webhook URL here
+# Google Sheets webhook URL (update with your deployed Google Apps Script web app URL)
 WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxWh0xGl4sQ6WRzxedsaYJqUUJpfqw7JUqWtbvTEHZlwfSYq4sYpJhadsdk3h9K-ynJ/exec"
 
 # Discord bot setup
@@ -33,17 +33,25 @@ WELCOME_GIF_URL = "https://www.dropbox.com/scl/fi/yxya94d102ltsrz64qv9k/Photo-Ju
 
 user_role_choices = {}
 
-# Function to send webhook log
+# Function to send webhook log with error handling
 async def send_webhook_log(name, email, discord_user, discord_id, role):
     async with aiohttp.ClientSession() as session:
-        await session.post(WEBHOOK_URL, json={
-            "name": name,
-            "email": email,
-            "discord_user": discord_user,
-            "discord_id": discord_id,
-            "role": role,
-            "timestamp": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-        })
+        try:
+            response = await session.post(WEBHOOK_URL, json={
+                "name": name,
+                "email": email,
+                "discord_user": discord_user,
+                "discord_id": discord_id,
+                "role": role,
+                "timestamp": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            })
+            if response.status != 200:
+                print(f"Webhook failed with status {response.status}: {await response.text()}")
+                return False
+            return True
+        except Exception as e:
+            print(f"Error sending webhook: {e}")
+            return False
 
 # Modal for registration
 class RegistrationModal(discord.ui.Modal, title="WMI Registration"):
@@ -55,29 +63,32 @@ class RegistrationModal(discord.ui.Modal, title="WMI Registration"):
         email = self.email.value or "Not provided"
 
         # Send data to Google Sheets webhook
-        await send_webhook_log(name, email, str(interaction.user), interaction.user.id, "MS1 Year 1 Student")
-
-        view = RoleView(interaction.user.id)
-        role_embed = discord.Embed(
-            title="Choose Your Role",
-            description="Click the button below to select your role at Wisteria Medical Institute.",
-            color=discord.Color.from_str("#B19CD9")
-        )
-        await interaction.response.send_message(embed=role_embed, view=view, ephemeral=True)
-
-        # Send log message in Discord channel
-        log_channel = bot.get_channel(LOG_CHANNEL_ID)
-        if log_channel:
-            log_embed = discord.Embed(
-                title="📝 New Student Registration Logged",
-                color=discord.Color.from_str("#7D5BA6")
+        success = await send_webhook_log(name, email, str(interaction.user), interaction.user.id, "MS1 Year 1 Student")
+        
+        if success:
+            view = RoleView(interaction.user.id)
+            role_embed = discord.Embed(
+                title="Choose Your Role",
+                description="Click the button below to select your role at Wisteria Medical Institute.",
+                color=discord.Color.from_str("#B19CD9")
             )
-            log_embed.add_field(name="👤 Name", value=name, inline=True)
-            log_embed.add_field(name="📧 Email", value=email, inline=True)
-            log_embed.add_field(name="🆔 Discord", value=f"{interaction.user} ({interaction.user.id})", inline=False)
-            log_embed.add_field(name="🎓 Role", value="MS1 Year 1 Student", inline=True)
-            log_embed.add_field(name="🕒 Date (UTC)", value=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), inline=True)
-            await log_channel.send(embed=log_embed)
+            await interaction.response.send_message(embed=role_embed, view=view, ephemeral=True)
+
+            # Send log message in Discord channel
+            log_channel = bot.get_channel(LOG_CHANNEL_ID)
+            if log_channel:
+                log_embed = discord.Embed(
+                    title="📝 New Student Registration Logged",
+                    color=discord.Color.from_str("#7D5BA6")
+                )
+                log_embed.add_field(name="👤 Name", value=name, inline=True)
+                log_embed.add_field(name="📧 Email", value=email, inline=True)
+                log_embed.add_field(name="🆔 Discord", value=f"{interaction.user} ({interaction.user.id})", inline=False)
+                log_embed.add_field(name="🎓 Role", value="MS1 Year 1 Student", inline=True)
+                log_embed.add_field(name="🕒 Date (UTC)", value=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'), inline=True)
+                await log_channel.send(embed=log_embed)
+        else:
+            await interaction.response.send_message("Failed to log registration. Please try again.", ephemeral=True)
 
 # Role Button
 class RoleButton(discord.ui.Button):
